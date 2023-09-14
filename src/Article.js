@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import datoCms from "./datoCms";
+import { GraphQLClient, gql } from "graphql-request";
 
 function ArticlePage() {
   const { slug } = useParams(null);
@@ -8,27 +8,35 @@ function ArticlePage() {
 
   useEffect(() => {
     async function fetchArticle() {
-      try {
-        const response = await datoCms.request(`
-          query {
-            article(filter: { slug: { eq: "${slug}" } }) {
-              title
-              content
-              image{
-                url
-              }
-          }
-        `);
+      const API_TOKEN = "23d68bb0bba7a845ee6e58c35fd841";
+      const client = new GraphQLClient("https://graphql.datocms.com/", {
+        headers: {
+          Authorization: `Bearer ${API_TOKEN}`,
+        },
+      });
 
-        setArticle(response.article);
-      } catch (error) {
-        console.error("Error fetching article:", error);
-      }
+      const query = gql`
+        query getArticle($slug: String!) {
+          article(filter: { slug: { eq: $slug } }) {
+            title
+            body
+            image {
+              url
+            }
+          }
+        }
+      `;
+
+      const variables = {
+        slug: slug,
+      };
+
+      const data = await client.request(query, variables);
+      setArticle(data.article);
     }
 
     fetchArticle();
   }, [slug]);
-
   if (!article) {
     return <div>Loading...</div>;
   }
